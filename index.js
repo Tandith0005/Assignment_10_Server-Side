@@ -9,7 +9,7 @@ app.use(express.json());
 app.use(cors());
 
 // MongoDB connection
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ekx13wz.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -23,6 +23,7 @@ const client = new MongoClient(uri, {
 
 const userCollection = client.db('gameReview').collection('users');
 const reviewCollection = client.db('gameReview').collection("reviews")
+const watchListCollection = client.db('gameReview').collection("watchList")
 
 // Insert User Data in Database
 app.post('/users', async (req, res) => {
@@ -45,7 +46,63 @@ app.post('/reviews', async(req,res)=>{
   res.send(result)
 })
 
-// Get All Users from Database
+// Get All Reviews from Database
+app.get('/reviews', async(req,res)=>{
+  const cursor = reviewCollection.find();
+  const result = await cursor.toArray();
+  res.send(result)
+})
+
+// Get single Review from Database
+app.get('/reviews/:id', async(req,res)=>{
+  const id = req.params.id;
+  const query = {_id : new ObjectId(id)}
+  const result = await reviewCollection.findOne(query);
+  res.send(result)
+})
+
+// post watchListCollection to database
+app.post('/watchListCollection', async(req,res)=>{
+  const review = req.body;
+  const result = await watchListCollection.insertOne(review);
+  res.send(result)
+})
+
+// Get reviews by email (for MyReview)
+app.get('/reviews/by-email/:email', async(req,res)=>{
+  const email = req.params.email;
+  const query = {email: email}; 
+  const result = await reviewCollection.find(query).toArray();
+  res.send(result);
+})
+
+// Update/Edit review
+app.get('/updateReview/:id', async(req,res)=>{
+  const id = req.params.id;
+  const query = {_id : new ObjectId(id)}
+  const result = await reviewCollection.findOne(query);
+  res.send(result)
+})
+
+app.put('/reviews/:id', async (req, res) => {
+  const id = req.params.id;
+  const updatedReview = req.body;
+  const filter = { _id: new ObjectId(id) };
+  const options = { upsert: false };
+  const updateDoc = {
+    $set: updatedReview
+  };
+  const result = await reviewCollection.updateOne(filter, updateDoc, options);
+  res.send(result);
+});
+
+// Delete review from myReview
+app.delete('/reviews/:id',async(req,res)=>{
+  const id = req.params.id;
+  const query = {_id : new ObjectId(id)}
+  const result = await reviewCollection.deleteOne(query);
+  res.send(result)
+})
 
 
 async function run() {
